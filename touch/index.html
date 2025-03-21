@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Touch Event Visualizer with Line and Angle</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #f0f0f0;
+        }
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            border: 1px solid #ccc;
+        }
+        .touch-point {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: rgba(0, 150, 255, 0.7);
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+        .angle-label {
+            position: absolute;
+            font-size: 16px;
+            color: black;
+            pointer-events: none;
+        }
+		.text-label {
+			position: absolute;
+		    top: 10px;
+            left: 40%;
+		}
+        .line {
+            position: absolute;
+            background-color: rgba(255, 0, 0, 0.7);
+            transform-origin: top left;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas"></div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        let startX, startY, isDrawing = false;
+		let touchstartX, touchstartY;
+		let touchendX, touchendY;
+		let touchstartT, touchendT;
+
+        function createTouchPoint(x, y) {
+            const touchPoint = document.createElement('div');
+            touchPoint.className = 'touch-point';
+            touchPoint.style.left = `${x - 10}px`; // Center the point
+            touchPoint.style.top = `${y - 10}px`; // Center the point
+            canvas.appendChild(touchPoint);
+
+            // Fade out effect
+            setTimeout(() => {
+                touchPoint.style.opacity = '0';
+            }, 50); // Start fading after a short delay
+
+            // Remove the touch point after the fade out
+            setTimeout(() => {
+                touchPoint.remove();
+            }, 500); // Match this with the transition duration
+        }
+
+        function drawLine(x1, y1, x2, y2, color) {
+            const line = document.createElement('div');
+            line.className = 'line';
+            const length = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+            line.style.width = `${length}px`;
+            line.style.height = '2px'; // Line thickness
+            line.style.left = `${x1}px`;
+            line.style.top = `${y1}px`;
+			line.style.backgroundColor = color;
+            line.style.transform = `rotate(${Math.atan2(y2 - y1, x2 - x1) * (180 / Math.PI)}deg)`;
+            canvas.appendChild(line);
+			
+			const angle = calculateAngle(x1, y1, x2, y2);
+			const angleLabel = document.createElement('div');
+			angleLabel.className = 'angle-label';
+			angleLabel.innerText = `Angle: ${angle.toFixed(0)}°`;
+			angleLabel.style.left = `${(x1 + x2) / 2}px`;
+			angleLabel.style.top = `${(y1 + y2) / 2}px`;
+			canvas.appendChild(angleLabel);
+
+			// Remove the angle label after a short delay
+			setTimeout(() => {
+				angleLabel.remove();
+				line.remove();
+			}, 5000); // Adjust the duration as needed			
+			
+        }
+		
+        function calculateAngle(x1, y1, x2, y2) {
+            const deltaX = x2 - x1;
+            const deltaY = y2 - y1;
+            let angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
+			
+			//return angle < 0 ? angle + 360 : angle; // Normalize angle to be between 0 and 360
+			angle = Math.abs(angle)
+            return angle > 90 ? 180 - angle : angle;
+        }
+
+        function handleTouchStart(event) {
+            event.preventDefault();
+            isDrawing = true;
+            startX = event.touches[0].clientX;
+            startY = event.touches[0].clientY;
+            createTouchPoint(startX, startY);
+			touchstartX = event.changedTouches[0].screenX;
+			touchstartY = event.changedTouches[0].screenY;
+			touchstartT = new Date();			
+        }
+
+        function handleTouchMove(event) {
+            event.preventDefault();
+            if (isDrawing) {
+                createTouchPoint(event.touches[0].clientX, event.touches[0].clientY);
+            }
+        }
+		
+		const textLabel = document.createElement('div');
+		function writeText(text) {
+		
+			
+			textLabel.className = 'text-label';
+			textLabel.innerText = text;
+			canvas.appendChild(textLabel);
+		
+		}
+
+        function handleTouchEnd(event) {
+            event.preventDefault();
+            if (isDrawing) {
+                const endX = event.changedTouches[0].clientX;
+                const endY = event.changedTouches[0].clientY;
+
+				touchendX = event.changedTouches[0].screenX;
+				touchendY = event.changedTouches[0].screenY;
+				touchendT = new Date();
+				let touchTime = touchendT - touchstartT;
+
+				const swipeThresholdX = 50; //Min horizontal
+				const swipeThresholdY = 50; //Max vertical 
+				const swipeThresholdT = 800; //Max time
+
+				let touchX = Math.abs(touchendX - touchstartX);
+				let touchY = Math.abs(touchendY - touchstartY);
+				let color = 'green';
+
+				if (touchTime > swipeThresholdT) {
+					writeText("Fail! Took to long");
+					color = 'red';
+				} else if (touchY > swipeThresholdY) {
+					writeText("Fail! Too much Y");
+					color = 'red';
+				} else if (touchX < swipeThresholdX) {
+					writeText("Fail! Too little X");
+					color = 'red';
+				} else if (touchX < touchY*2) {
+					writeText('Fail! Angle too big! ' + touchX + ' < ' + touchY*2);
+					color = 'red';
+				}
+					
+				if (touchX > touchY*2 && touchX > swipeThresholdX && touchY < swipeThresholdY && touchTime < swipeThresholdT) {
+
+					if (touchendX < touchstartX) {
+						writeText("OK! Right");
+					} else {
+						writeText("OK! Left");	  
+					}
+
+				}				
+
+                drawLine(startX, startY, endX, endY, color);
+
+                isDrawing = false; // Reset drawing state
+            }
+
+		}
+
+
+        function handleTouchCancel(event) {
+            event.preventDefault();
+            isDrawing = false; // Reset drawing state
+        }
+
+        canvas.addEventListener('touchstart', handleTouchStart);
+        canvas.addEventListener('touchmove', handleTouchMove);
+        canvas.addEventListener('touchend', handleTouchEnd);
+        canvas.addEventListener('touchcancel', handleTouchCancel);
+    </script>
+</body>
+</html>
