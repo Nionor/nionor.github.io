@@ -12,12 +12,17 @@
         }
         #canvas {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(255, 255, 255, 0.8);
+            top: 40px;
+            left: 10%;
+            width: 80%;
+            height: 80%;
+            background-color: rgba(207, 207, 207, 0.8);
             border: 1px solid #ccc;
+        }
+        #config {
+            position: absolute;
+            top: 10px;
+            left: 10%;   
         }
         .touch-point {
             position: absolute;
@@ -44,9 +49,21 @@
             background-color: rgba(255, 0, 0, 0.7);
             transform-origin: top left;
         }
+        input {
+            width: 50px;
+            margin-right: 20px;
+        }
     </style>
 </head>
 <body>
+    <div id="config">
+        <label for="x">X</label>
+        <input type="text" id="x" value="50" onchange="swipeThresholdX=this.value;">
+        <label for="y">Y</label>
+        <input type="text" id="y" value="50" onchange="swipeThresholdY=this.value;">
+        <label for="t">T</label>
+        <input type="text" id="t" value="800" onchange="swipeThresholdT=this.value;">
+    </div>
     <div id="canvas"></div>
 
     <script>
@@ -140,6 +157,10 @@
 		
 		}
 
+        let swipeThresholdX = 50; //Min horizontal
+		let swipeThresholdY = 50; //Max vertical 
+		let swipeThresholdT = 800; //Max time
+
         function handleTouchEnd(event) {
             event.preventDefault();
             if (isDrawing) {
@@ -151,9 +172,7 @@
 				touchendT = new Date();
 				let touchTime = touchendT - touchstartT;
 
-				const swipeThresholdX = 50; //Min horizontal
-				const swipeThresholdY = 50; //Max vertical 
-				const swipeThresholdT = 800; //Max time
+                console.log(swipeThresholdT);
 
 				let touchX = Math.abs(touchendX - touchstartX);
 				let touchY = Math.abs(touchendY - touchstartY);
